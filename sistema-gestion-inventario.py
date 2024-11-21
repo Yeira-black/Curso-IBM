@@ -132,7 +132,7 @@ class Inventario:
             return
             
         #preparamos los datos para que se vean como una tabla
-        headers = ["Nombre Producto", "Categoría", "Ref.", "Precio (€)", "Uds.]
+        headers = ["Nombre Producto", "Categoría", "Ref.", "Precio (€)", "Uds."]
         tabla_inventario = []
         
         for producto in self.__productos:
@@ -144,15 +144,15 @@ class Inventario:
                 producto.get_cantidad()
             ])
        #mostrar la tabla con formato
-       print("\n=== Inventario de Productos en almacén ===")
-       print(tabulate(
-           tabla_inventario,
-           headers=headers,
-           tablefmt="grid",  #formato de cuadrícula
-           stralign="left",  #alineación de texto a la izquierda
-           numalign="right"  #alineación de números a la derecha
-       ))
-       print(f"\nTotal de Productos: {len(self.__productos)}")
+        print("\n=== Inventario de Productos en almacén ===")
+        print(tabulate(
+            tabla_inventario,
+            headers=headers,
+            tablefmt="grid",  #formato de cuadrícula
+            stralign="left",  #alineación de texto a la izquierda
+            numalign="right"  #alineación de números a la derecha
+        ))
+        print(f"\nTotal de Productos: {len(self.__productos)}")
 
     def buscar_producto(self, nombre):
         """Busca un producto por nombre y lo devuelve si existe"""
