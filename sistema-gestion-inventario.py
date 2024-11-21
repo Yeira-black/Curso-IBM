@@ -1,4 +1,5 @@
 import unicodedata
+from tabulate import tabulate
 
 def normalizar_texto(texto):
     """Normaliza el texto eliminando acentos y convirtiendo a minúsculas""" 
@@ -54,7 +55,7 @@ class Producto: # Definición de la clase Producto para representar elementos en
             raise ValueError("La cantidad no puede ser negativa")
         self.__cantidad = cantidad
         
-    # Métodos públicos para actualizar precio y cantidad que reutilizan los métodos de validación    
+    # Métodos públicos para actualizar referencia, precio y/o cantidad que reutilizan los métodos de validación    
     def actualizar_referencia(self, nueva_referencia):
         self.__set_referencia(nueva_referencia)
 
@@ -129,11 +130,29 @@ class Inventario:
         if not self.__productos:
             print("El inventario está vacío") 
             return
+            
+        #preparamos los datos para que se vean como una tabla
+        headers = ["Nombre Producto", "Categoría", "Ref.", "Precio (€)", "Uds.]
+        tabla_inventario = []
         
-        print("\n=== Lista de productos ===")
-        for producto in self.__productos:  # Imprime cada producto del inventario
-            print(producto)
-        print("=====================")
+        for producto in self.__productos:
+            tabla_inventario.append([
+                producto.get_nombre(),
+                producto.get_categoria(),
+                f"{producto.get_referencia():010d}",
+                f"{producto.get_precio():.2f}",
+                producto.get_cantidad()
+            ])
+       #mostrar la tabla con formato
+       print("\n=== Inventario de Productos en almacén ===")
+       print(tabulate(
+           tabla_inventario,
+           headers=headers,
+           tablefmt="grid",  #formato de cuadrícula
+           stralign="left",  #alineación de texto a la izquierda
+           numalign="right"  #alineación de números a la derecha
+       ))
+       print(f"\nTotal de Productos: {len(self.__productos)}")
 
     def buscar_producto(self, nombre):
         """Busca un producto por nombre y lo devuelve si existe"""
