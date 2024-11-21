@@ -1,7 +1,17 @@
+import unicodedata
+
+def normalizar_texto(texto):
+    """Normaliza el texto eliminando acentos y convirtiendo a minúsculas""" 
+    return ''.join(
+        char for char in unicodedata.normalize('NFKD', texto.lower())
+        if unicodedata.category(char) != 'Mn'
+    )
 class Producto: # Definición de la clase Producto para representar elementos en el inventario
     def __init__(self, nombre, categoria, referencia, precio, cantidad):     # Constructor de la clase que inicializa los atributos
-        self.__nombre = nombre # Atributos privados (encapsulamiento) usando doble guión bajo. Esto previene el acceso directo desde fuera de la clase
-        self.__categoria = categoria
+        self.__nombre_normalizado = normalizar_texto(nombre) # Atributos privados (encapsulamiento) usando doble guión bajo. Esto previene el acceso directo desde fuera de la clase
+        self.__categoria_normalizada = normalizar_texto(categoria)
+        self.__nombre = nombre
+        self.__categoria=categoria
         self.__set_referencia(referencia) # Llamada al método privado de validación de referencia
         self.__set_precio(precio)
         self.__set_cantidad(cantidad)
@@ -21,8 +31,14 @@ class Producto: # Definición de la clase Producto para representar elementos en
 
     def get_cantidad(self):
         return self.__cantidad
+    
+    def get_nombre_normalizado(self):
+        return self.__nombre_normalizado
+    
+    def get_categoria_normalizada(self):
+        return self.__categoria_normalizada
 
-# Métodos setter privados con validaciones para prevenir valores inválidos
+# Métodos setter privados con validaciones para prevenir valores incorrectos
     def __set_referencia(self, referencia):
         if referencia <= 0:
             raise ValueError("Introduzca una referencia válida (debe ser >0)")
@@ -57,14 +73,24 @@ class Producto: # Definición de la clase Producto para representar elementos en
 class Inventario:
     """Inicializa un invetario vacio"""
     def __init__(self):
-        # Lista privada para almacenar los productos
+        # Listas privada para almacenar los productos
         self.__productos = []
+        self.__nombres_normalizados = set()
+        self.__categorias_normalizadas = set()
 
     def agregar_producto(self, producto):
         """Agrega un nuevo producto"""
-        if self.buscar_producto(producto.get_nombre()):
-            raise ValueError(f"Ya existe un producto con el nombre {producto.get_nombre()}") # Previene la adición de productos con nombres duplicados
+        nombre_norm = producto.get_nombre_normalizado()
+        categoria_norm = producto.get_categoria_normalizada()
+        # Previene la adición de productos con nombres duplicados
+        if nombre_norm in self.__nombres_normalizados:
+            raise ValueError(f"Ya existe un producto con el nombre {producto.get_nombre()}") 
+        if categoria_norm in self.__categorias_normalizadas:
+            raise ValueError(f"Ya existe una categoría similar a {producto.get_categoria()}")
+        
         self.__productos.append(producto)
+        self.__nombres_normalizados.add(nombre_norm)
+        self.__categorias_normalizadas.add(categoria_norm)
         print(f"Producto '{producto.get_nombre()}' agregado")
 
     def actualizar_producto(self, nombre, nueva_referencia=None, nuevo_precio=None, nueva_cantidad=None):
@@ -96,29 +122,29 @@ class Inventario:
             self.__productos.remove(producto)
             print(f"Producto '{nombre}' eliminado")  #Confirmación antes de eliminar el producto para descartar arrepentimientos
         else:
-            print("\nOperación cancelada - El producto no fue eliminado")
+            print("\nOperación cancelada - El producto no fue eliminado, vuelve a intentarlo")
 
     def mostrar_inventario(self):
         """Muestra todos los productos en el inventario"""
         if not self.__productos:
-            print("El inventario está vacío") # Maneja el caso de inventario vacío
+            print("El inventario está vacío") 
             return
         
         print("\n=== Lista de productos ===")
-        for producto in self.__productos:  # Imprime cada producto en el inventario
+        for producto in self.__productos:  # Imprime cada producto del inventario
             print(producto)
         print("=====================")
 
     def buscar_producto(self, nombre):
-        """Busca un producto por nombre y lo retorna si existe"""
+        """Busca un producto por nombre y lo devuelve si existe"""
+        nombre_norm = normalizar_texto(nombre)
         for producto in self.__productos:
-            if producto.get_nombre().lower() == nombre.lower(): 
-                 # Búsqueda case-insensitive del producto, da igual si se excribe en minúscula o mayúscula
+            if producto.get_nombre_normalizado() == nombre_norm: 
                 return producto
         return None
 
 
-# Función principal que maneja el menú interactivo
+"""Función principal que maneja el menú"""
 def main():
     inventario = Inventario()
     
@@ -139,7 +165,7 @@ def main():
             if opcion == 1: # Agregar producto
                 nombre = input("Nombre del producto: ").strip()
                 if not nombre:
-                   raise ValueError("El nombre del producto no puede estar vacío")
+                   raise ValueError("El producto tiene que tener nombre")
                 categoria = input("Categoría: ").strip()
                 if not categoria:
                    raise ValueError("La categoría no puede estar vacía")
@@ -153,7 +179,7 @@ def main():
             elif opcion == 2: # Actualizar producto
                 nombre = input("Nombre del producto a actualizar: ").strip()
                 if not nombre:
-                    raise ValueError("El nombre del producto no puede estar vacío")
+                    raise ValueError("El producto tiene que tener nombre")
                 actualizar_referencia = input("¿Desea actualizar la referencia? (s/n): ").lower() == 's'
                 actualizar_precio = input("¿Desea actualizar el precio? (s/n): ").lower() == 's'
                 actualizar_cantidad = input("¿Desea actualizar la cantidad? (s/n): ").lower() == 's'
@@ -165,9 +191,9 @@ def main():
                 inventario.actualizar_producto(nombre, nueva_referencia, nuevo_precio, nueva_cantidad)
                 
             elif opcion == 3: # Eliminar producto
-                nombre = input("Nombre del producto a eliminar: ").strip()
+                nombre = input("Nombre del producto a exterminar: ").strip()
                 if not nombre:
-                    raise ValueError("El nombre del producto no puede estar vacío")
+                    raise ValueError("El producto tiene que tener nombre")
 
                 while True:
                     try:
@@ -179,21 +205,21 @@ def main():
                         if opcion != 's':
                             print("Volver al menú principal")
                             break
-                        nombre = input("Nombre del producto a eliminar: ").strip()
+                        nombre = input("Nombre del producto a exterminar: ").strip()
                         if not nombre:
-                            raise ValueError("El nombre del producto no puede estar vacío")
+                            raise ValueError("El producto tiene que tener nombre")
                 
             elif opcion == 4:  # Mostrar inventario
                 inventario.mostrar_inventario()
                 
             elif opcion == 5:  # Buscar producto
-                nombre = input("Nombre del producto a buscar: ")
+                nombre = input("Producto a buscar: ")
                 producto = inventario.buscar_producto(nombre)
                 if producto:
-                    print("\nProducto encontrado:")
+                    print("\nLo encontré:")
                     print(producto)
                 else:
-                    print(f"No se encontró el producto '{nombre}'")
+                    print(f"No se encontró, lo siento '{nombre}'")
                 
             elif opcion == 6: # Salir del programa
                 print("Cerrando programa. Hasta pronto")
