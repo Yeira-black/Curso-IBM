@@ -2,13 +2,16 @@ import unicodedata
 from tabulate import tabulate
 
 def normalizar_texto(texto):
-    """Normaliza el texto eliminando acentos y convirtiendo a minúsculas""" 
+   #Normaliza el texto eliminando acentos y convirtiendo a minúsculas
     return ''.join(
         char for char in unicodedata.normalize('NFKD', texto.lower())
         if unicodedata.category(char) != 'Mn'
     )
-class Producto: # Definición de la clase Producto para representar elementos en el inventario
-    def __init__(self, nombre, categoria, referencia, precio, cantidad):     # Constructor de la clase que inicializa los atributos
+    
+# Definición de la clase Producto para representar elementos en el inventario
+class Producto: 
+    # Constructor de la clase que inicializa los atributos
+    def __init__(self, nombre, categoria, referencia, precio, cantidad):
         self.__nombre_normalizado = normalizar_texto(nombre) # Atributos privados (encapsulamiento) usando doble guión bajo. Esto previene el acceso directo desde fuera de la clase
         self.__categoria_normalizada = normalizar_texto(categoria)
         self.__nombre = nombre
@@ -72,33 +75,40 @@ class Producto: # Definición de la clase Producto para representar elementos en
 
 # Definición de la clase Inventario para gestionar los productos y sus operaciones asociadas
 class Inventario:
-    """Inicializa un invetario vacio"""
+    #Inicializa un invetario vacio
     def __init__(self):
-        # Listas privada para almacenar los productos
+        # Listas privadas para almacenar los productos
         self.__productos = []
         self.__nombres_normalizados = set()
-        self.__categorias_normalizadas = set()
+        self.__categorias_formato = {} #usamos un diccionario para mantener la referencia a las categorías originales
 
     def agregar_producto(self, producto):
-        """Agrega un nuevo producto"""
+        #Agrega un nuevo producto
         nombre_norm = producto.get_nombre_normalizado()
         categoria_norm = producto.get_categoria_normalizada()
-        # Previene la adición de productos con nombres duplicados
+        
+        # Previene la adición de productos o categorías con nombres duplicados
         if nombre_norm in self.__nombres_normalizados:
             raise ValueError(f"Ya existe un producto con el nombre {producto.get_nombre()}") 
-        if categoria_norm in self.__categorias_normalizadas:
-            raise ValueError(f"Ya existe una categoría similar a {producto.get_categoria()}")
+        #si la categoria normalizada ya existe, se usa la categoría original
+        if categoria_norm in self.__categorias_formato:
+            #Asignala categoría original al producto para mantener la consistencia
+            categoria_origen = self.__categorias_formato[categoria_norm]
+        else:
+            #si es una nueva categoría la guarda como categoría original
+            self.__categorias_formato[categoria_norm] = producto.get_categoria() 
         
+        #añade el producto y su nombre normalizado
         self.__productos.append(producto)
         self.__nombres_normalizados.add(nombre_norm)
-        self.__categorias_normalizadas.add(categoria_norm)
-        print(f"Producto '{producto.get_nombre()}' agregado")
+        print(f"Producto '{producto.get_nombre()}' agregado a la categoría '{producto.get_categoria()}'")
 
     def actualizar_producto(self, nombre, nueva_referencia=None, nuevo_precio=None, nueva_cantidad=None):
-        """Actualiza la referencia, el precio o cantidad de un producto existente"""
+        #Actualiza la referencia, el precio o cantidad de un producto existente
         producto = self.buscar_producto(nombre)
         if not producto:
-            raise ValueError(f"No se encontró el producto '{nombre}'") # Busca el producto y lanza error si no existe
+            # Busca el producto y lanza error si no existe
+            raise ValueError(f"No se encontró el producto '{nombre}'") 
 
 #Actualiza los atributos seleccionados de un producto existente
         if nueva_referencia is not None:
@@ -109,8 +119,9 @@ class Inventario:
             producto.actualizar_cantidad(nueva_cantidad)
         print(f"Producto '{nombre}' actualizado")
 
+ #Elimina un producto del inventario
     def eliminar_producto(self, nombre):
-        """Elimina un producto del inventario"""
+       
         producto = self.buscar_producto(nombre)
         if not producto:
             raise ValueError(f"No se encontró el producto '{nombre}'")
@@ -121,12 +132,13 @@ class Inventario:
         confirmacion = input("\n¿Está seguro que desea eliminar este producto? (s/n): ").lower()
         if confirmacion == 's':
             self.__productos.remove(producto)
-            print(f"Producto '{nombre}' eliminado")  #Confirmación antes de eliminar el producto para descartar arrepentimientos
+            #Confirmación antes de eliminar el producto para descartar arrepentimientos
+            print(f"Producto '{nombre}' eliminado")  
         else:
             print("\nOperación cancelada - El producto no fue eliminado, vuelve a intentarlo")
 
     def mostrar_inventario(self):
-        """Muestra todos los productos en el inventario"""
+        #Muestra todos los productos en el inventario
         if not self.__productos:
             print("El inventario está vacío") 
             return
@@ -135,7 +147,11 @@ class Inventario:
         headers = ["Nombre Producto", "Categoría", "Ref.", "Precio (€)", "Uds."]
         tabla_inventario = []
         
-        for producto in self.__productos:
+        #ordenamos los productos por  categoría y nombre
+        productos_ordenados = sorted(self.__productos,
+                                     key=lambda x: (x.get_categoria_normalizada(), x.get_nombre_normalizado()))
+        
+        for producto in productos_ordenados:
             tabla_inventario.append([
                 producto.get_nombre(),
                 producto.get_categoria(),
@@ -153,9 +169,20 @@ class Inventario:
             numalign="right"  #alineación de números a la derecha
         ))
         print(f"\nTotal de Productos: {len(self.__productos)}")
+        
+        #muestra un resumen por categorías
+        print("\nResumen por categorías:")
+        categorias = {}
+        for producto in self.__productos:
+            categoria = producto.get_categoria()
+            if categoria not in categorias:
+                categorias[categoria] = 0
+            categorias[categoria] += 1
+        for categoria, cantidad in sorted(categorias.items()):
+            print(f"-{categoria}:{cantidad} producto(s)")
 
     def buscar_producto(self, nombre):
-        """Busca un producto por nombre y lo devuelve si existe"""
+       #Busca un producto por nombre y lo devuelve si existe
         nombre_norm = normalizar_texto(nombre)
         for producto in self.__productos:
             if producto.get_nombre_normalizado() == nombre_norm: 
@@ -177,11 +204,11 @@ def main():
         print("5. Buscar producto")
         print("6. Salir")
         
-        try: # Solicita y procesa la opción del usuario
+        try: # Solicita que elijas una opción y la ejecuta
             opcion = int(input("\nSeleccione una opción: "))
             
-            # Estructura de control para manejar diferentes opciones del menú
-            if opcion == 1: # Agregar producto
+            # Estructura de control de las diferentes opciones del menú
+            if opcion == 1: # Agrega un producto
                 nombre = input("Nombre del producto: ").strip()
                 if not nombre:
                    raise ValueError("El producto tiene que tener nombre")
@@ -195,7 +222,7 @@ def main():
                 producto = Producto(nombre, categoria, referencia, precio, cantidad)
                 inventario.agregar_producto(producto)
                 
-            elif opcion == 2: # Actualizar producto
+            elif opcion == 2: # Actualiza un producto
                 nombre = input("Nombre del producto a actualizar: ").strip()
                 if not nombre:
                     raise ValueError("El producto tiene que tener nombre")
@@ -209,7 +236,7 @@ def main():
                 
                 inventario.actualizar_producto(nombre, nueva_referencia, nuevo_precio, nueva_cantidad)
                 
-            elif opcion == 3: # Eliminar producto
+            elif opcion == 3: # Elimina un producto
                 nombre = input("Nombre del producto a exterminar: ").strip()
                 if not nombre:
                     raise ValueError("El producto tiene que tener nombre")
@@ -228,10 +255,10 @@ def main():
                         if not nombre:
                             raise ValueError("El producto tiene que tener nombre")
                 
-            elif opcion == 4:  # Mostrar inventario
+            elif opcion == 4:  # Muestra el inventario
                 inventario.mostrar_inventario()
                 
-            elif opcion == 5:  # Buscar producto
+            elif opcion == 5:  # Busca un producto
                 nombre = input("Producto a buscar: ")
                 producto = inventario.buscar_producto(nombre)
                 if producto:
@@ -240,7 +267,7 @@ def main():
                 else:
                     print(f"No se encontró, lo siento '{nombre}'")
                 
-            elif opcion == 6: # Salir del programa
+            elif opcion == 6: # Sale del programa
                 print("Cerrando programa. Hasta pronto")
                 break
                 
